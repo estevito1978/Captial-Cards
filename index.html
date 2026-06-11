@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Capital Cards</title>
+<style>
+  :root {
+    --bg: #f2f0eb;
+    --card-front: #ffffff;
+    --card-back: #1f6f5c;
+    --card-back-text: #ffffff;
+    --text: #1c1c1e;
+    --text-muted: #8a8a8e;
+    --accent: #1f6f5c;
+    --star: #f5a623;
+    --chip-bg: #e4e1da;
+    --shadow: 0 8px 30px rgba(0,0,0,0.12);
+    --btn-bg: #ffffff;
+    --btn-border: #dcd9d2;
+  }
+  body.dark {
+    --bg: #121214;
+    --card-front: #1e1e22;
+    --card-back: #2a8d75;
+    --card-back-text: #ffffff;
+    --text: #f0f0f2;
+    --text-muted: #828289;
+    --accent: #34b095;
+    --chip-bg: #28282d;
+    --shadow: 0 8px 30px rgba(0,0,0,0.5);
+    --btn-bg: #1e1e22;
+    --btn-border: #333338;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: background 0.3s, color 0.3s;
+    overflow-x: hidden;
+  }
+  header {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 4px;
+  }
+  header h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+  .icon-btn {
+    background: var(--btn-bg);
+    border: 1px solid var(--btn-border);
+    color: var(--text);
+    border-radius: 50%;
+    width: 38px; height: 38px;
+    font-size: 17px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.3s, border 0.3s;
+  }
+  .controls {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    gap: 8px;
+    padding: 10px 20px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  select, .pill-btn {
+    background: var(--btn-bg);
+    border: 1px solid var(--btn-border);
+    color: var(--text);
+    border-radius: 20px;
+    padding: 7px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.3s, border 0.3s, color 0.3s;
+  }
+  .pill-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .pill-btn.active .star-glyph { color: #ffd966; }
+  .progress {
+    width: 100%;
+    max-width: 480px;
+    padding: 2px 20px 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+  }
+  .card-area {
+    width: 100%;
+    max-width: 480px;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 20px 0;
+    perspective: 1200px;
+    min-height: 380px;
+  }
+  .card {
+    width: 100%;
+    max-width: 400px;
+    height: 360px;
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+    touch-action: pan-y;
+  }
+  .card-inner {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    transition: transform 0.45s cubic-bezier(0.4, 0.0, 0.2, 1);
+  }
+  .card.flipped .card-inner { transform: rotateY(180deg); }
+  .card.sliding .card-inner { transition: transform 0.22s ease, opacity 0.22s ease; }
+  .face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    text-align: center;
+  }
+  .face.front { background: var(--card-front); transition: background 0.3s; }
+  .face.back  { background: var(--card-back); color: var(--card-back-text); transform: rotateY(180deg); }
+  .face .label {
+    position: absolute;
+    top: 22px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .face.back .label { color: rgba(255,255,255,0.65); }
+  .face .word { font-size: 34px; font-weight: 700; line-height: 1.2; letter-spacing: -0.5px; }
+  .face .continent-chip {
+    position: absolute;
+    bottom: 22px;
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    background: var(--chip-bg);
+    color: var(--text-muted);
+  }
+  .face.back .continent-chip { background: rgba(255,255,255,0.18); color: rgba(255,255,255,0.85); }
+  .star-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 5;
+    background: none;
+    border: none;
+    font-size: 26px;
+    cursor: pointer;
+    color: var(--btn-border);
+    padding: 8px;
+    line-height: 1;
+    transition: transform 0.15s, color 0.2s;
+  }
+  .star-btn.starred { color: var(--star); }
+  .star-btn:active { transform: scale(1.25); }
+  .nav {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    padding: 18px 20px 10px;
+  }
+  .nav button {
+    background: var(--btn-bg);
+    border: 1px solid var(--btn-border);
+    color: var(--text);
+    border-radius: 24px;
+    padding: 11px 26px;
+    font-size: 15px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.3s, border 0.3s;
+  }
+  .hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    padding-bottom: 22px;
+    text-align: center;
+    padding-left: 20px; padding-right: 20px;
+  }
+  .empty-msg {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 15px;
+    line-height: 1.6;
+    padding: 40px 20px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Capital Cards</h1>
+  <button class="icon-btn" id="darkToggle" title="Toggle dark mode">🌙</button>
+</header>
+
+<div class="controls">
+  <select id="continentSel">
+    <option value="All">All continents</option>
+    <option value="Africa">Africa</option>
+    <option value="Asia">Asia</option>
+    <option value="Europe">Europe</option>
+    <option value="North America">North America</option>
+    <option value="South America">South America</option>
+    <option value="Oceania">Oceania</option>
+  </select>
+  <button class="pill-btn" id="starFilter"><span class="star-glyph">★</span> Starred only</button>
+  <button class="pill-btn" id="shuffleBtn">⇄ Shuffle</button>
+</div>
+
+<div class="progress">
+  <span id="counter"></span>
+  <span id="starCount"></span>
+</div>
+
+<div class="card-area" id="cardArea">
+  <div class="card" id="card">
+    <button class="star-btn" id="starBtn" title="Star this card">★</button>
+    <div class="card-inner" id="cardInner">
+      <div class="face front">
+        <span class="label">Country</span>
+        <span class="word" id="frontWord"></span>
+        <span class="continent-chip" id="frontChip"></span>
+      </div>
+      <div class="face back">
+        <span class="label">Capital</span>
+        <span class="word" id="backWord"></span>
+        <span class="continent-chip" id="backChip"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="nav">
+  <button id="prevBtn">← Prev</button>
+  <button id="nextBtn">Next →</button>
+</div>
+<p class="hint">Tap card to flip · Swipe or use ← → keys to navigate</p>
+
+<script>
+const DATA = [
+  ["Algeria","Algiers","Africa"],["Angola","Luanda","Africa"],["Benin","Porto-Novo","Africa"],
+  ["Botswana","Gaborone","Africa"],["Burkina Faso","Ouagadougou","Africa"],["Burundi","Gitega","Africa"],
+  ["Cabo Verde","Praia","Africa"],["Cameroon","Yaoundé","Africa"],["Central African Republic","Bangui","Africa"],
+  ["Chad","N'Djamena","Africa"],["Comoros","Moroni","Africa"],["Republic of the Congo","Brazzaville","Africa"],
+  ["DR Congo","Kinshasa","Africa"],["Côte d'Ivoire","Yamoussoukro","Africa"],["Djibouti","Djibouti","Africa"],
+  ["Egypt","Cairo","Africa"],["Equatorial Guinea","Malabo","Africa"],["Eritrea","Asmara","Africa"],
+  ["Eswatini","Mbabane","Africa"],["Ethiopia","Addis Ababa","Africa"],["Gabon","Libreville","Africa"],
+  ["Gambia","Banjul","Africa"],["Ghana","Accra","Africa"],["Guinea","Conakry","Africa"],
+  ["Guinea-Bissau","Bissau","Africa"],["Kenya","Nairobi","Africa"],["Lesotho","Maseru","Africa"],
+  ["Liberia","Monrovia","Africa"],["Libya","Tripoli","Africa"],["Madagascar","Antananarivo","Africa"],
+  ["Malawi","Lilongwe","Africa"],["Mali","Bamako","Africa"],["Mauritania","Nouakchott","Africa"],
+  ["Mauritius","Port Louis","Africa"],["Morocco","Rabat","Africa"],["Mozambique","Maputo","Africa"],
+  ["Namibia","Windhoek","Africa"],["Niger","Niamey","Africa"],["Nigeria","Abuja","Africa"],
+  ["Rwanda","Kigali","Africa"],["São Tomé and Príncipe","São Tomé","Africa"],["Senegal","Dakar","Africa"],
+  ["Seychelles","Victoria","Africa"],["Sierra Leone","Freetown","Africa"],["Somalia","Mogadishu","Africa"],
+  ["South Africa","Pretoria","Africa"],["South Sudan","Juba","Africa"],["Sudan","Khartoum","Africa"],
+  ["Tanzania","Dodoma","Africa"],["Togo","Lomé","Africa"],["Tunisia","Tunis","Africa"],
+  ["Uganda","Kampala","Africa"],["Zambia","Lusaka","Africa"],["Zimbabwe","Harare","Africa"],
+  ["Afghanistan","Kabul","Asia"],["Armenia","Yerevan","Asia"],["Azerbaijan","Baku","Asia"],
+  ["Bahrain","Manama","Asia"],["Bangladesh","Dhaka","Asia"],["Bhutan","Thimphu","Asia"],
+  ["Brunei","Bandar Seri Begawan","Asia"],["Cambodia","Phnom Penh","Asia"],["China","Beijing","Asia"],
+  ["Cyprus","Nicosia","Asia"],["Georgia","Tbilisi","Asia"],["India","New Delhi","Asia"],
+  ["Indonesia","Jakarta","Asia"],["Iran","Tehran","Asia"],["Iraq","Baghdad","Asia"],
+  ["Israel","Jerusalem","Asia"],["Japan","Tokyo","Asia"],["Jordan","Amman","Asia"],
+  ["Kazakhstan","Astana","Asia"],["Kuwait","Kuwait City","Asia"],["Kyrgyzstan","Bishkek","Asia"],
+  ["Laos","Vientiane","Asia"],["Lebanon","Beirut","Asia"],["Malaysia","Kuala Lumpur","Asia"],
+  ["Maldives","Malé","Asia"],["Mongolia","Ulaanbaatar","Asia"],["Myanmar","Naypyidaw","Asia"],
+  ["Nepal","Kathmandu","Asia"],["North Korea","Pyongyang","Asia"],["Oman","Muscat","Asia"],
+  ["Pakistan","Islamabad","Asia"],["Philippines","Manila","Asia"],["Qatar","Doha","Asia"],
+  ["Saudi Arabia","Riyadh","Asia"],["Singapore","Singapore","Asia"],["South Korea","Seoul","Asia"],
+  ["Sri Lanka","Sri Jayawardenepura Kotte","Asia"],["Syria","Damascus","Asia"],["Tajikistan","Dushanbe","Asia"],
+  ["Thailand","Bangkok","Asia"],["Timor-Leste","Dili","Asia"],["Turkey","Ankara","Asia"],
+  ["Turkmenistan","Ashgabat","Asia"],["United Arab Emirates","Abu Dhabi","Asia"],["Uzbekistan","Tashkent","Asia"],
+  ["Vietnam","Hanoi","Asia"],["Yemen","Sana'a","Asia"],
+  ["Albania","Tirana","Europe"],["Andorra","Andorra la Vella","Europe"],["Austria","Vienna","Europe"],
+  ["Belarus","Minsk","Europe"],["Belgium","Brussels","Europe"],["Bosnia and Herzegovina","Sarajevo","Europe"],
+  ["Bulgaria","Sofia","Europe"],["Croatia","Zagreb","Europe"],["Czechia","Prague","Europe"],
+  ["Denmark","Copenhagen","Europe"],["Estonia","Tallinn","Europe"],["Finland","Helsinki","Europe"],
+  ["France","Paris","Europe"],["Germany","Berlin","Europe"],["Greece","Athens","Europe"],
+  ["Hungary","Budapest","Europe"],["Iceland","Reykjavík","Europe"],["Ireland","Dublin","Europe"],
+  ["Italy","Rome","Europe"],["Latvia","Riga","Europe"],["Liechtenstein","Vaduz","Europe"],
+  ["Lithuania","Vilnius","Europe"],["Luxembourg","Luxembourg","Europe"],["Malta","Valletta","Europe"],
+  ["Moldova","Chișinău","Europe"],["Monaco","Monaco","Europe"],["Montenegro","Podgorica","Europe"],
+  ["Netherlands","Amsterdam","Europe"],["North Macedonia","Skopje","Europe"],["Norway","Oslo","Europe"],
+  ["Poland","Warsaw","Europe"],["Portugal","Lisbon","Europe"],["Romania","Bucharest","Europe"],
+  ["Russia","Moscow","Europe"],["San Marino","San Marino","Europe"],["Serbia","Belgrade","Europe"],
+  ["Slovakia","Bratislava","Europe"],["Slovenia","Ljubljana","Europe"],["Spain","Madrid","Europe"],
+  ["Sweden","Stockholm","Europe"],["Switzerland","Bern","Europe"],["Ukraine","Kyiv","Europe"],
+  ["United Kingdom","London","Europe"],
+  ["Antigua and Barbuda","Saint John's","North America"],["Bahamas","Nassau","North America"],
+  ["Barbados","Bridgetown","North America"],["Belize","Belmopan","North America"],
+  ["Canada","Ottawa","North America"],["Costa Rica","San José","North America"],
+  ["Cuba","Havana","North America"],["Dominica","Roseau","North America"],
+  ["Dominican Republic","Santo Domingo","North America"],["El Salvador","San Salvador","North America"],
+  ["Grenada","Saint George's","North America"],["Guatemala","Guatemala City","North America"],
+  ["Haiti","Port-au-Prince","North America"],["Honduras","Tegucigalpa","North America"],
+  ["Jamaica","Kingston","North America"],["Mexico","Mexico City","North America"],
+  ["Nicaragua","Managua","North America"],["Panama","Panama City","North America"],
+  ["Saint Kitts and Nevis","Basseterre","North America"],["Saint Lucia","Castries","North America"],
+  ["Saint Vincent and the Grenadines","Kingstown","North America"],["Trinidad and Tobago","Port of Spain","North America"],
+  ["United States","Washington, D.C.","North America"],
+  ["Argentina","Buenos Aires","South America"],["Bolivia","Sucre","South America"],
+  ["Brazil","Brasília","South America"],["Chile","Santiago","South America"],
+  ["Colombia","Bogotá","South America"],["Ecuador","Quito","South America"],
+  ["Guyana","Georgetown","South America"],["Paraguay","Asunción","South America"],
+  ["Peru","Lima","South America"],["Suriname","Paramaribo","South America"],
+  ["Uruguay","Montevideo","South America"],["Venezuela","Caracas","South America"],
+  ["Australia","Canberra","Oceania"],["Fiji","Suva","Oceania"],["Kiribati","Tarawa","Oceania"],
+  ["Marshall Islands","Majuro","Oceania"],["Micronesia","Palikir","Oceania"],["Nauru","Yaren","Oceania"],
+  ["New Zealand","Wellington","Oceania"],["Palau","Ngerulmud","Oceania"],
+  ["Papua New Guinea","Port Moresby","Oceania"],["Samoa","Apia","Oceania"],
+  ["Solomon Islands","Honiara","Oceania"],["Tonga","Nukuʻalofa","Oceania"],
+  ["Tuvalu","Funafuti","Oceania"],["Vanuatu","Port Vila","Oceania"]
+];
+
+// ---------- safe storage (falls back to in-memory if browser blocks localStorage for local files) ----------
+const store = (() => {
+  try {
+    localStorage.setItem("_t", "1"); localStorage.removeItem("_t");
+    return localStorage;
+  } catch (e) {
+    const m = {};
+    return { getItem: k => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); }, removeItem: k => { delete m[k]; } };
+  }
+})();
+
+// ---------- state ----------
+let stars = new Set(JSON.parse(store.getItem("capcards_stars") || "[]"));
+let starredOnly = false;
+let continent = "All";
+let deck = [];
+let idx = 0;
+
+// ---------- elements ----------
+const card = document.getElementById("card");
+const cardInner = document.getElementById("cardInner");
+const frontWord = document.getElementById("frontWord");
+const backWord = document.getElementById("backWord");
+const frontChip = document.getElementById("frontChip");
+const backChip = document.getElementById("backChip");
+const starBtn = document.getElementById("starBtn");
+const counter = document.getElementById("counter");
+const starCount = document.getElementById("starCount");
+const cardArea = document.getElementById("cardArea");
+
+// ---------- dark mode ----------
+const darkToggle = document.getElementById("darkToggle");
+function setDark(on) {
+  document.body.classList.toggle("dark", on);
+  darkToggle.textContent = on ? "☀️" : "🌙";
+  store.setItem("capcards_dark", on ? "1" : "0");
+}
+const savedDark = store.getItem("capcards_dark");
+setDark(savedDark === null
+  ? window.matchMedia("(prefers-color-scheme: dark)").matches
+  : savedDark === "1");
+darkToggle.onclick = () => setDark(!document.body.classList.contains("dark"));
+
+// ---------- deck ----------
+function buildDeck() {
+  deck = DATA.filter(d =>
+    (continent === "All" || d[2] === continent) &&
+    (!starredOnly || stars.has(d[0]))
+  );
+  if (idx >= deck.length) idx = 0;
+  render();
+}
+
+function render() {
+  if (deck.length === 0) {
+    card.style.display = "none";
+    let old = document.getElementById("emptyMsg");
+    if (!old) {
+      old = document.createElement("p");
+      old.id = "emptyMsg";
+      old.className = "empty-msg";
+      cardArea.appendChild(old);
+    }
+    old.textContent = starredOnly
+      ? "No starred cards here yet.\nStar tricky ones with the ★ on the card, then come back."
+      : "No cards match this filter.";
+    counter.textContent = "0 / 0";
+    starCount.textContent = "★ " + stars.size + " starred";
+    return;
+  }
+  const old = document.getElementById("emptyMsg");
+  if (old) old.remove();
+  card.style.display = "";
+  const [country, capital, cont] = deck[idx];
+  frontWord.textContent = country;
+  backWord.textContent = capital;
+  frontChip.textContent = cont;
+  backChip.textContent = cont;
+  starBtn.classList.toggle("starred", stars.has(country));
+  counter.textContent = (idx + 1) + " / " + deck.length;
+  starCount.textContent = "★ " + stars.size + " starred";
+}
+
+function showCard(newIdx, dir) {
+  // slide out, swap content while hidden, slide in
+  card.classList.add("sliding");
+  card.classList.remove("flipped");
+  cardInner.style.opacity = "0";
+  cardInner.style.transform = "translateX(" + (-dir * 60) + "px)";
+  setTimeout(() => {
+    idx = newIdx;
+    render();
+    cardInner.style.transition = "none";
+    cardInner.style.transform = "translateX(" + (dir * 60) + "px)";
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      cardInner.style.transition = "";
+      cardInner.style.opacity = "1";
+      cardInner.style.transform = "";
+      setTimeout(() => card.classList.remove("sliding"), 240);
+    }));
+  }, 200);
+}
+
+function next() { if (deck.length > 1) showCard((idx + 1) % deck.length, 1); }
+function prev() { if (deck.length > 1) showCard((idx - 1 + deck.length) % deck.length, -1); }
+
+// ---------- interactions ----------
+card.addEventListener("click", () => card.classList.toggle("flipped"));
+
+starBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  const country = deck[idx][0];
+  if (stars.has(country)) stars.delete(country); else stars.add(country);
+  store.setItem("capcards_stars", JSON.stringify([...stars]));
+  if (starredOnly) buildDeck(); else render();
+});
+
+// swipe (pointer events cover touch + mouse)
+let startX = null, swiped = false;
+card.addEventListener("pointerdown", (e) => { startX = e.clientX; swiped = false; });
+card.addEventListener("pointermove", (e) => {
+  if (startX === null || swiped) return;
+  const dx = e.clientX - startX;
+  if (Math.abs(dx) > 50) {
+    swiped = true;
+    dx < 0 ? next() : prev();
+  }
+});
+const endSwipe = () => { startX = null; };
+card.addEventListener("pointerup", endSwipe);
+card.addEventListener("pointercancel", endSwipe);
+// suppress the flip-click right after a swipe
+card.addEventListener("click", (e) => { if (swiped) { e.stopImmediatePropagation(); swiped = false; } }, true);
+
+document.getElementById("nextBtn").onclick = next;
+document.getElementById("prevBtn").onclick = prev;
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowRight") next();
+  else if (e.key === "ArrowLeft") prev();
+  else if (e.key === " " || e.key === "Enter") { e.preventDefault(); card.classList.toggle("flipped"); }
+  else if (e.key.toLowerCase() === "s") starBtn.click();
+});
+
+// ---------- filters ----------
+document.getElementById("continentSel").onchange = (e) => { continent = e.target.value; idx = 0; buildDeck(); };
+
+const starFilterBtn = document.getElementById("starFilter");
+starFilterBtn.onclick = () => {
+  starredOnly = !starredOnly;
+  starFilterBtn.classList.toggle("active", starredOnly);
+  idx = 0;
+  buildDeck();
+};
+
+document.getElementById("shuffleBtn").onclick = () => {
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  idx = 0;
+  card.classList.remove("flipped");
+  render();
+};
+
+buildDeck();
+</script>
+</body>
+</html>
